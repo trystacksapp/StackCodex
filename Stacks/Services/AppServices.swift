@@ -1,18 +1,18 @@
 import SwiftUI
 import UIKit
 
-struct AppServices {
-    var auth: any AuthService
-    var stacks: any StackRepository
-    var profiles: any ProfileRepository
-    var productSearch: any ProductSearchService
-    var backgroundRemoval: any BackgroundRemovalService
-    var affiliate: any AffiliateService
-    var claims: any ClaimService
-    var collaboration: any CollaborationService
-    var storage: any StorageService
-    var realtime: any RealtimeService
-    var haptics: HapticsService
+struct AppServices: Sendable {
+    let auth: any AuthService
+    let stacks: any StackRepository
+    let profiles: any ProfileRepository
+    let productSearch: any ProductSearchService
+    let backgroundRemoval: any BackgroundRemovalService
+    let affiliate: any AffiliateService
+    let claims: any ClaimService
+    let collaboration: any CollaborationService
+    let storage: any StorageService
+    let realtime: any RealtimeService
+    let haptics: HapticsService
 
     static func mock() -> AppServices {
         let seed = MockSeedData()
@@ -50,7 +50,7 @@ struct AppServices {
 }
 
 private struct AppServicesKey: EnvironmentKey {
-    static let defaultValue = AppServices.mock()
+    static var defaultValue: AppServices { .mock() }
 }
 
 extension EnvironmentValues {
@@ -60,7 +60,7 @@ extension EnvironmentValues {
     }
 }
 
-final class HapticsService {
+final class HapticsService: @unchecked Sendable {
     @MainActor
     func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
         let generator = UIImpactFeedbackGenerator(style: style)
