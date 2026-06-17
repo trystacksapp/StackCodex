@@ -1,7 +1,7 @@
 import SwiftUI
 import UIKit
 
-struct AppServices: Sendable {
+struct AppServices: @unchecked Sendable {
     let auth: any AuthService
     let stacks: any StackRepository
     let profiles: any ProfileRepository
@@ -60,7 +60,7 @@ extension EnvironmentValues {
     }
 }
 
-final class HapticsService: @unchecked Sendable {
+struct HapticsService: Sendable {
     @MainActor
     func impact(_ style: UIImpactFeedbackGenerator.FeedbackStyle = .light) {
         let generator = UIImpactFeedbackGenerator(style: style)
