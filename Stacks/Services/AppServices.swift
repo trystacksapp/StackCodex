@@ -49,14 +49,22 @@ struct AppServices: @unchecked Sendable {
     }
 }
 
+private final class AppServicesBox: @unchecked Sendable {
+    let services: AppServices
+
+    init(_ services: AppServices) {
+        self.services = services
+    }
+}
+
 private struct AppServicesKey: EnvironmentKey {
-    nonisolated(unsafe) static var defaultValue: AppServices { .mock() }
+    static let defaultValue = AppServicesBox(.mock())
 }
 
 extension EnvironmentValues {
     var appServices: AppServices {
-        get { self[AppServicesKey.self] }
-        set { self[AppServicesKey.self] = newValue }
+        get { self[AppServicesKey.self].services }
+        set { self[AppServicesKey.self] = AppServicesBox(newValue) }
     }
 }
 
