@@ -68,7 +68,21 @@ enum DemoProductImageCatalog {
         let lower = title.lowercased()
         let rawURL: String
 
-        if lower.contains("shoe") || lower.contains("studio edition") {
+        if lower.contains("shirt") || lower.contains("t-shirt") || lower.contains("tshirt") {
+            rawURL = "https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("shorts") || lower.contains("gingham") {
+            rawURL = "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("earring") || lower.contains("pearl") {
+            rawURL = "https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("wine") || lower.contains("bottle") {
+            rawURL = "https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("wallet") {
+            rawURL = "https://images.unsplash.com/photo-1627123424574-724758594e93?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("keys") || lower.contains("keychain") {
+            rawURL = "https://images.unsplash.com/photo-1582139329536-e7284fece509?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("tote") || lower.contains("bag") {
+            rawURL = "https://images.unsplash.com/photo-1590874103328-eac38a683ce7?auto=format&fit=crop&w=520&q=80"
+        } else if lower.contains("shoe") || lower.contains("sneaker") || lower.contains("studio edition") {
             rawURL = "https://images.unsplash.com/photo-1542291026-7eec264c27ff?auto=format&fit=crop&w=520&q=80"
         } else if lower.contains("lamp") {
             rawURL = "https://images.unsplash.com/photo-1507473885765-e6ed057f782c?auto=format&fit=crop&w=520&q=80"

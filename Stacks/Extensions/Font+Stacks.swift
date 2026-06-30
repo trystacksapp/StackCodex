@@ -9,8 +9,11 @@ extension Font {
         .system(size: size, weight: weight, design: .default)
     }
 
+    static func stacksSerifDisplay(size: CGFloat, weight: Weight = .regular) -> Font {
+        .system(size: size, weight: weight, design: .serif)
+    }
+
     static func instrumentSerifItalic(size: CGFloat) -> Font {
         .custom("InstrumentSerif-Italic", size: size).italic()
     }
 }
-

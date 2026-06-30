@@ -9,9 +9,15 @@ private enum OnboardingStage: Equatable {
 }
 
 private enum OnboardingSheet: Identifiable {
+    case auth
     case email
 
-    var id: String { "email" }
+    var id: String {
+        switch self {
+        case .auth: "auth"
+        case .email: "email"
+        }
+    }
 }
 
 struct OnboardingView: View {
@@ -59,15 +65,35 @@ struct OnboardingView: View {
                 firstStackPrompt
             }
         }
-        .sheet(item: $sheet) { _ in
-            EmailSignInSheet { email in
-                await session.signInWithEmail(email)
-                if case .onboarding = session.state {
-                    stage = .saveAnything
+        .sheet(item: $sheet) { destination in
+            switch destination {
+            case .auth:
+                StartStackingAuthSheet(
+                    onApple: {
+                        await session.signInWithApple()
+                        if case .onboarding = session.state {
+                            stage = .saveAnything
+                        }
+                    },
+                    onEmail: {
+                        sheet = nil
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            sheet = .email
+                        }
+                    }
+                )
+                .presentationDetents([.height(260)])
+                .presentationDragIndicator(.visible)
+            case .email:
+                EmailSignInSheet { email in
+                    await session.signInWithEmail(email)
+                    if case .onboarding = session.state {
+                        stage = .saveAnything
+                    }
                 }
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
             }
-            .presentationDetents([.medium])
-            .presentationDragIndicator(.visible)
         }
         .onAppear {
             if case .onboarding = session.state, stage == .hero {
@@ -78,39 +104,81 @@ struct OnboardingView: View {
 
     private var hero: some View {
         GeometryReader { proxy in
+            let isCompact = proxy.size.height < 760
+            let heroScale = min(1, max(0.82, proxy.size.height / 852))
+
             VStack(spacing: 0) {
-                ProductPhotoCloud()
-                    .frame(height: min(max(proxy.size.height * 0.46, 286), 390))
-                    .padding(.top, 20)
+                Spacer(minLength: proxy.safeAreaInsets.top + (isCompact ? 18 : 48))
 
-                VStack(spacing: 18) {
-                    Text("Curate the things you love")
-                        .font(.stacksDisplay(size: proxy.size.width < 380 ? 48 : 56, weight: .bold))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.stacksInk)
-                        .lineLimit(2)
-                        .minimumScaleFactor(0.72)
-                        .allowsTightening(true)
+                Text("Save the\nthings you love")
+                    .font(.stacksSerifDisplay(size: (isCompact ? 58 : 66) * heroScale, weight: .regular))
+                    .foregroundStyle(Color.stacksInk)
+                    .multilineTextAlignment(.center)
+                    .lineSpacing(-9 * heroScale)
+                    .minimumScaleFactor(0.78)
+                    .allowsTightening(true)
+                    .padding(.horizontal, 24)
+
+                EditorialOnboardingProductField()
+                    .frame(height: min(max(proxy.size.height * 0.52, 410), isCompact ? 430 : 500))
+                    .padding(.top, isCompact ? 18 : 28)
+
+                Spacer(minLength: isCompact ? 10 : 20)
+
+                OnboardingFeaturePanel()
+                    .padding(.horizontal, 38)
+
+                Button {
+                    services.haptics.impact(.medium)
+                    sheet = .auth
+                } label: {
+                    Text("Start stacking")
+                        .font(.stacksText(size: 25, weight: .semibold))
+                        .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
+                        .frame(height: isCompact ? 56 : 66)
+                        .background(Color.black, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 86)
+                .padding(.top, 18)
+                .padding(.bottom, max(proxy.safeAreaInsets.bottom, 12))
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.white.ignoresSafeArea())
+        }
+    }
 
-                    VStack(spacing: 12) {
-                        PrimaryButton(title: "Continue with Apple", systemImage: "apple.logo") {
-                            Task {
-                                await session.signInWithApple()
-                                if case .onboarding = session.state {
-                                    stage = .saveAnything
-                                }
-                            }
-                        }
+    private struct StartStackingAuthSheet: View {
+        @Environment(\.dismiss) private var dismiss
 
-                        GlassButton(title: "Continue with Email", systemImage: "envelope") {
-                            sheet = .email
-                        }
+        let onApple: () async -> Void
+        let onEmail: () -> Void
+
+        var body: some View {
+            VStack(spacing: 14) {
+                Capsule()
+                    .fill(Color.stacksDivider)
+                    .frame(width: 36, height: 4)
+                    .padding(.top, 8)
+
+                Text("Start stacking")
+                    .font(.stacksDisplay(size: 30, weight: .bold))
+                    .foregroundStyle(Color.stacksInk)
+
+                PrimaryButton(title: "Continue with Apple", systemImage: "apple.logo") {
+                    Task {
+                        await onApple()
+                        dismiss()
                     }
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 34)
+                GlassButton(title: "Continue with Email", systemImage: "envelope") {
+                    onEmail()
+                }
             }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 20)
+            .background(Color.stacksCream.opacity(0.35))
         }
     }
 
@@ -213,6 +281,104 @@ struct OnboardingView: View {
         Task {
             await session.completeOnboarding()
         }
+    }
+}
+
+private struct EditorialOnboardingProductField: View {
+    private let placements: [ProductPlacement] = [
+        ProductPlacement(title: "Green T-Shirt", x: 0.24, y: 0.18, width: 170, rotation: -2),
+        ProductPlacement(title: "Gingham Shorts", x: 0.61, y: 0.18, width: 172, rotation: 2),
+        ProductPlacement(title: "Pearl Earrings", x: 0.91, y: 0.14, width: 76, rotation: 5),
+        ProductPlacement(title: "Gold Watch", x: 0.91, y: 0.39, width: 74, rotation: 2),
+        ProductPlacement(title: "Wine Bottle", x: 0.16, y: 0.64, width: 118, rotation: -3),
+        ProductPlacement(title: "Brown Wallet", x: 0.36, y: 0.48, width: 88, rotation: -12),
+        ProductPlacement(title: "Red Sneakers", x: 0.64, y: 0.49, width: 168, rotation: -2),
+        ProductPlacement(title: "Keys", x: 0.45, y: 0.78, width: 116, rotation: 7),
+        ProductPlacement(title: "Canvas Tote", x: 0.78, y: 0.78, width: 124, rotation: 4)
+    ]
+
+    var body: some View {
+        GeometryReader { proxy in
+            let scale = min(1, max(0.82, proxy.size.width / 390))
+
+            ZStack {
+                ForEach(placements) { placement in
+                    ProductCutout(title: placement.title)
+                        .frame(width: placement.width * scale, height: placement.width * scale)
+                        .rotationEffect(.degrees(placement.rotation))
+                        .position(
+                            x: proxy.size.width * placement.x,
+                            y: proxy.size.height * placement.y
+                        )
+                        .zIndex(placement.title == "Gold Watch" || placement.title == "Wine Bottle" ? 2 : 1)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        }
+    }
+}
+
+private struct ProductPlacement: Identifiable {
+    let id = UUID()
+    let title: String
+    let x: CGFloat
+    let y: CGFloat
+    let width: CGFloat
+    let rotation: Double
+}
+
+private struct ProductCutout: View {
+    let title: String
+
+    var body: some View {
+        ProductObjectImage(title: title)
+            .padding(2)
+            .shadow(color: .black.opacity(0.14), radius: 8, x: 0, y: 7)
+            .shadow(color: .white.opacity(0.9), radius: 2, x: 0, y: 0)
+            .accessibilityHidden(true)
+    }
+}
+
+private struct OnboardingFeaturePanel: View {
+    private let rows: [(String, String)] = [
+        ("rectangle.stack.fill", "Save your finds"),
+        ("photo.on.rectangle.angled", "Stack them"),
+        ("plus", "Share with the world")
+    ]
+
+    var body: some View {
+        VStack(spacing: 0) {
+            ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                VStack(spacing: 8) {
+                    Image(systemName: row.0)
+                        .font(.system(size: 24, weight: .bold))
+                        .foregroundStyle(Color.stacksInk)
+                        .frame(height: 25)
+
+                    Text(row.1)
+                        .font(.stacksText(size: 23, weight: .regular))
+                        .foregroundStyle(Color.stacksInk)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 70)
+
+                if index < rows.count - 1 {
+                    Rectangle()
+                        .fill(Color.black.opacity(0.09))
+                        .frame(height: 1)
+                        .padding(.horizontal, 44)
+                }
+            }
+        }
+        .padding(.vertical, 12)
+        .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 34, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 34, style: .continuous)
+                .stroke(.white.opacity(0.88), lineWidth: 1)
+        }
+        .shadow(color: .black.opacity(0.10), radius: 28, x: 0, y: 14)
     }
 }
 
